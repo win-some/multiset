@@ -7,7 +7,8 @@
 
   :repositories {"clojars-https" {:url "https://clojars.org/repo"
                                   :username "achim"
-                                  :password :env}}
+                                  :password :env}
+                 "clojars" {:sign-releases false}}
 
   :source-paths ["src" "src/main"]
   :test-paths ["test" "src/test"]
