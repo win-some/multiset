@@ -1,7 +1,7 @@
 (defproject metametadata/multiset "0.1.1"
 
   :description "A simple multiset/bag implementation for Clojure."
-  :url "https://github.com/achim/multiset"
+  :url "https://github.com/metametadata/multiset"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
