@@ -1,4 +1,4 @@
-(defproject org.clojars.achim/multiset "0.1.1-SNAPSHOT"
+(defproject metametadata/multiset "0.1.1"
 
   :description "A simple multiset/bag implementation for Clojure."
   :url "https://github.com/achim/multiset"
