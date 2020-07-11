@@ -1,4 +1,4 @@
-# multiset [![Build Status](https://travis-ci.org/achim/multiset.svg)](https://travis-ci.org/achim/multiset)
+# multiset
 
 A simple multiset/bag implementation for Clojure.
 
@@ -6,13 +6,9 @@ A simple multiset/bag implementation for Clojure.
 
 ### Installation via Leiningen
 
-Add this to your `:depependencies`:
-
-![Clojars Project](http://clojars.org/org.clojars.achim/multiset/latest-version.svg)
-
 ### [API Docs](http://achim.github.com/multiset/)
 
-The current API docs are here: http://achim.github.io/multiset
+
 
 ### Example usage
 
