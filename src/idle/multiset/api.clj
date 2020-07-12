@@ -126,6 +126,14 @@
   :args (s/cat :items (s/* any?))
   :ret ::multiset)
 
+(defn multiplicity
+  "Returns the number of occurences of x, 0 if x is not a member."
+  [ms x]
+  (get (multiplicities ms) x 0))
+(s/fdef multiplicity
+  :args (s/cat :ms ::multiset :x any?)
+  :ret nat-int?)
+
 (defn multiset-reader
   [x]
   (multiset x))
@@ -187,26 +195,19 @@
   {:ret #mset [4 1 2 3], :args [:arity-2 {:ms1 #mset [4], :ms2 #mset [1 2 3]}]}
   (union #mset [1] #mset [2] #mset [3] )
 
-
-  )
+)
 
 (defn intersection
   "Returns only the common keys of the multisets."
   ([ms1 ms2]
    (if (< (count ms2) (count ms1))
      (recur ms2 ms1)
-     (loop [[entry & rest] (multiplicities ms2)
-            result ms1]
-       (if (seq entry)
-         (let [[k v2] entry
-               v1 (get ms1 k 0)
-               new-v (min v1 v2)]
-           ;; Getting rid of metadata because this is a new collection
-           (recur rest (->Multiset nil (if (zero? new-v)
-                                         (dissoc (multiplicities result) k)
-                                         (assoc (multiplicities result) k new-v))
-                                   (- (count result) (- v1 new-v)))))
-         result))))
+     (reduce (fn [result x]
+               (if (contains? ms2 x)
+                 result
+                 (disj result x)))
+             ms1
+             ms1)))
   ([ms1 ms2 & multisets]
    (let [smallest-first (sort-by count (conj multisets ms1 ms2))]
      (reduce intersection (first smallest-first) (rest smallest-first)))))

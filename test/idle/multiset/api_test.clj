@@ -64,8 +64,54 @@
     (e/expect #mset [1 1 2 2 3 3]
               #mset [3 2 1 3 2 1])))
 
-#_(deftest difference
-  #_(s/exercise-fn `mset/difference)
+(deftest union
+  (testing "unioning empty sets gives an empty set"
+    (e/expect #mset []
+              (mset/union #mset [] #mset [])))
+  (testing "unioning sets gives union of sets"
+    (e/expect #mset [1 1 1 2 3 4]
+              (mset/union #mset [1 1 2] #mset [1 3 4])))
+  (testing "unioning n sets gives union of sets"
+    (e/expect #mset [1 1 2 3]
+              (mset/union #mset [1] #mset [1] #mset [2] #mset [3]))))
+
+(deftest subset?
+  (testing "empty sets are subsets of everything"
+    (e/expect true
+              (mset/subset? #mset [] #mset []))
+    (e/expect true
+              (mset/subset? #mset [] #mset [1 2 3 4])))
+  (testing "disjoint sets are not subsets"
+    (e/expect false
+              (mset/subset? #mset [1 2 3 4] #mset []))
+    (e/expect false
+              (mset/subset? #mset [1 1] #mset [1]))))
+
+(deftest intersection
+  (testing "intersection returns only the common elements of all sets"
+    (e/expect #mset [1]
+              (mset/intersection #mset [1 2] #mset [1 3]))
+    (e/expect #mset [1]
+              (mset/intersection #mset [1 2] #mset [1 3] #mset [1 1]))
+    (e/expect #mset []
+              (mset/intersection #mset [1 2] #mset [1 3] #mset []))))
+
+
+(deftest difference
+  (testing "returns the keys in ms1 that are not in the following sets"
+    (e/expect #mset [1]
+              (mset/difference #mset [1 1 2] #mset [1 2 3] #mset []))
+    (e/expect #mset []
+              (mset/difference #mset [] #mset [1 2 3] #mset [1 1 2]))))
+
+(deftest product
+  (testing "returns the cartesian product of the given two sets"
+    (e/expect #mset [[1 :green] [1 :green] [1 :red] [1 :red]
+                     [1 :white] [1 :white] [3 :green] [3 :red] [3 :white]]
+              (mset/product #mset [1 1 3] #mset [:red :white :green]))))
+
+(comment
+    #_(s/exercise-fn `mset/difference)
   #_(gen/generate
      (gen/fmap #(mset/multiset %) (s/gen vector?)))
 
@@ -75,13 +121,4 @@
 
   #_(stest/check `mset/difference {::stest/opts {:num-tests 1}})
 
-
-
-
-
-
   )
-#_(deftest intersection)
-#_(deftest union)
-#_(deftest subset?)
-#_(deftest product)
