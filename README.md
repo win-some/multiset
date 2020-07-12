@@ -4,74 +4,78 @@ A simple multiset/bag implementation for Clojure.
 
 ## Usage
 
-### Installation via Leiningen
+Currently a work in progress, so if you want to use it you'll need to clone it yourself
+and add this to your deps.edn:
 
-### [API Docs](http://achim.github.com/multiset/)
-
-
+`idle/multiset {:local/root "/home/me/path/to/repo"}``
 
 ### Example usage
 
 #### Define some multisets
 ```clojure
-user=> (require '[multiset.core :as ms])
-nil
-user=> (def a (ms/multiset 1 2 4 5 4 2 7))
-#'user/a
-user=> (def b (ms/multiset 4 5 6 6 9))
-#'user/b
-user=> (def c (ms/multiset 1 2 4 7))
-#'user/c
+user=> (require '[idle.multiset.api :as mset])
+;; => nil
+user=> (def a (mset/multiset [1 1 2 3]))
+;; => #'user/a
+user=> (def b (mset/multiset [3 4 5]))
+;; => #'user/b
+;; you can use the reader literal to create it too
+user=> (def c #mset [1 2 4 7])
+;; => #'user/c
 ```
 #### Basic functionality
 ```clojure
 user=> a
-#{7 5 4 4 2 2 1}
-user=> (contains? a 3)
-false
+;; => #mset [1 1 2 3]
+user=> (contains? a 4)
+;; => false
 user=> (contains? a 2)
-true
-user=> (disj a 2)
-#{7 5 4 4 2 1}
+;; => true
+user=> (disj a 1)
+;; => #mset [1 2 3]
 user=> (conj a 4)
-#{7 5 4 4 4 2 2 1}
+;; => #mset [1 1 2 3 5]
 user=> (a 2)
+;; => 2
+user=> (a "not-a-member" :default)
+;; => :default
+user=> (seq a)
+;; => (1 1 2 3)
 ```
 #### Multiset-specific stuff
 ```clojure
-user=> (ms/multiset? a)
+user=> (mset/multiset? a)
 true
-user=> (ms/multiplicities a)
-{7 1, 5 1, 4 2, 2 2, 1 1}
-user=> (ms/multiplicity a 3)
+user=> (mset/multiplicities a)
+{1 2, 2 1, 3 1}
+user=> (mset/multiplicity a 5)
 0
-user=> (ms/multiplicity a 2)
+user=> (mset/multiplicity a 1)
 2
 ```
 #### Multiset operators
 ```clojure
-user=> (ms/intersect a (conj b 4))
-#{5 4 4}
-user=> (ms/union a b)
-#{1 2 2 4 4 5 6 6 7 9}
-user=> (ms/sum a b)
-#{1 2 2 4 4 4 5 5 6 6 7 9}
-user=> (ms/minus a b)
-#{7 4 2 2 1}
-user=> (ms/scale a 3)
-#{7 7 7 5 5 5 4 4 4 4 4 4 2 2 2 2 2 2 1 1 1}
-user=> (ms/cartprod a b)
-#{[5 4] [7 6] [7 6] [4 4] [4 4] [5 5] [4 5] [4 5] [5 6] [5 6] [2 4] [2 4] [4 6] [4 6] [4 6] [4 6] [7 9] [2 5] [2 5] [1 4] [2 6] [2 6] [2 6] [2 6] [5 9] [1 5] [4 9] [4 9] [1 6] [1 6] [2 9] [2 9] [1 9] [7 4] [7 5]}
-user=> (ms/subset? a b)
-false
-user=> (ms/subset? c a)
+user=> (mset/union #mset [1] #mset [2] #mset [1])
+#mset [1 1 2]
+user=> (mset/intersection #mset [1 2 3] #mset [3])
+#mset [3]
+user=> (mset/difference #mset [1 1 2] #mset [1 3])
+#mset [1 2]
+user=> (mset/difference #mset [1 1 2] #mset [1 3] #mset [1])
+#mset [2]
+user=> (mset/product #mset [1 2 3] #mset [:red :white :green])
+#mset [[2 :green] [1 :red] [2 :white] [1 :green] [3 :red] [3 :white] [3 :green] [1 :white] [2 :red]]
+user=> (mset/subset? #mset [] #mset [])
 true
-user=> (ms/subset? (ms/multiset 2 2 2) a)
+user=> (mset/subset? #mset [1] #mset [1 1 2])
+true
+user=> (mset/subset? #mset [3] #mset [4])
 false
 ```
 
 ## License
 
-Copyright (C) 2012–2015 Achim Passen and [contributors](https://github.com/achim/multiset/graphs/contributors).
+Copyright (C) 2012–2015 winsome and Achim Passen and
+[contributors](https://github.com/achim/multiset/graphs/contributors).
 
 Distributed under the Eclipse Public License. See COPYING.
