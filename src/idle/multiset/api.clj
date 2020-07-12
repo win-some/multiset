@@ -1,6 +1,7 @@
-(ns multiset.api
+(ns idle.multiset.api
   (:require [clojure.pprint :as pprint]
             [clojure.spec.alpha :as s]
+            [clojure.spec.gen.alpha :as gen]
             #_[orchestra.spec.test :as st])
   (:import (java.util Collection)))
 
@@ -11,10 +12,9 @@
 (deftype Multiset [^clojure.lang.IPersistentMap meta
                    ^clojure.lang.IPersistentMap multiplicities
                    ^int size]
-  clojure.lang.IPersistentSet
-  (get [this k]
-    (if-let [e (find multiplicities k)]
-      (key e)))
+  clojure.lang.IPersistentSet (get [this k]
+                                (if-let [e (find multiplicities k)]
+                                  (key e)))
   (contains [this k]
     (boolean (find multiplicities k)))
   (disjoin [this k]
@@ -107,10 +107,14 @@
    (->Multiset nil {} 0))
   ([s]
    (->Multiset nil (frequencies s) (count s))))
+
+(s/def ::multiset (s/with-gen multiset?
+                    #(gen/fmap (partial multiset) (s/gen vector?))))
+
 (s/fdef multiset
   :args (s/alt :arity-0 (s/cat)
                :arity-1 (s/cat :items coll?))
-  :ret multiset?)
+  :ret ::multiset)
 
 (defn mset
   "Create a multiset."
@@ -120,14 +124,14 @@
    (multiset xs)))
 (s/fdef mset
   :args (s/cat :items (s/* any?))
-  :ret multiset?)
+  :ret ::multiset)
 
 (defn multiset-reader
   [x]
   (multiset x))
 (s/fdef multiset-reader
   :args (s/cat :x coll?)
-  :ret multiset?)
+  :ret ::multiset)
 
 (defn subset?
   "Returns true if ms1 is a subset of ms2."
@@ -141,7 +145,7 @@
             true
             ms1)))
 (s/fdef subset?
-  :args (s/cat :ms1 multiset? :ms2 multiset?)
+  :args (s/cat :ms1 ::multiset :ms2 ::multiset)
   :ret boolean?)
 
 (comment
@@ -164,9 +168,9 @@
   ([ms1 ms2 & multisets]
    (reduce union ms1 (clojure.core/conj multisets ms2))))
 (s/fdef union
-  :args (s/alt :arity-2 (s/cat :ms1 multiset? :ms2 multiset?)
-               :variadic (s/cat :ms1 multiset? :ms2 multiset? :multisets (s/* multiset?)))
-  :ret multiset?
+  :args (s/alt :arity-2 (s/cat :ms1 ::multiset :ms2 ::multiset)
+               :variadic (s/cat :ms1 ::multiset :ms2 ::multiset :multisets (s/* ::multiset)))
+  :ret ::multiset
   ;; each input set must be a subset of the output
   :fn #(let [{:keys [ms1 ms2 multisets]} (-> % :args second)
              inputs (conj (or multisets []) ms1 ms2)
@@ -207,9 +211,9 @@
    (let [smallest-first (sort-by count (conj multisets ms1 ms2))]
      (reduce intersection (first smallest-first) (rest smallest-first)))))
 (s/fdef intersection
-  :args (s/alt :arity-2 (s/cat :ms1 multiset? :ms2 multiset?)
-               :variadic (s/cat :ms1 multiset? :ms2 multiset? :multisets (s/* multiset?)))
-  :ret multiset?
+  :args (s/alt :arity-2 (s/cat :ms1 ::multiset :ms2 ::multiset)
+               :variadic (s/cat :ms1 ::multiset :ms2 ::multiset :multisets (s/* ::multiset)))
+  :ret ::multiset
   ;; the return set must be a subset of each input
   :fn #(let [{:keys [ms1 ms2 multisets]} (-> % :args second)
              inputs (conj (or multisets []) ms1 ms2)
@@ -231,27 +235,41 @@
    (reduce disj ms1 ms2))
   ([ms1 ms2 & multisets]
    (reduce difference ms1 (conj multisets ms2))))
-(s/fdef difference
-  :args (s/alt :arity-2 (s/cat :ms1 multiset? :ms2 multiset?)
-               :variadic (s/cat :ms1 multiset? :ms2 multiset? :multisets (s/* multiset?)))
-  :ret multiset?
-  ;; the return set must be a subset of ms1 and not be a subset of any other set
-  :fn #(let [{:keys [ms1 ms2 multisets]} (-> % :args second)
-             diff-inputs (conj (or multisets []) ms2) ; excluding ms1
-             ret (:ret %)]
-         (reduce (fn [acc arg]
-                   (if acc
-                     (and acc (subset? ret ms1) (not (subset? ret arg)))
-                     (reduced false)))
-                 true
-                 diff-inputs)))
+(defn difference-proof
+  "The return set must be a subset of ms1 and not be a subset of any other set (unless
+  it is empty)"
+  [result]
+  (let [{:keys [ms1 ms2 multisets]} (-> result :args second)
+        diff-inputs (conj (or multisets []) ms2) ; excluding ms1
+        ret (:ret result)]
+    (reduce (fn [acc arg]
+              (if acc
+                (and acc (subset? ret ms1) (or (empty? ret)
+                                               (not (subset? ret arg))))
+                (reduced false)))
+            true
+            diff-inputs)))
 
+(s/fdef difference
+  :args (s/alt :arity-2 (s/cat :ms1 ::multiset :ms2 ::multiset)
+               :variadic (s/cat :ms1 ::multiset :ms2 ::multiset :multisets (s/* ::multiset)))
+  :ret ::multiset
+  :fn #'difference-proof
+  )
 (comment
+
+  (difference-proof {:args [:arity-2 {:ms1 #mset [], :ms2 #mset [0]}], :ret #mset []})
+  (difference-proof {:args [:arity-2 {:ms1 #mset [], :ms2 #mset []}], :ret #mset []})
+
+  false
+
   (difference #mset [1 1 2 3] #mset [1 1 3])
   #mset [2]
   #mset [1 2]
   #mset []
-
+  (difference #mset [] #mset [])
+  (subset? #mset [] #mset [])
+  true
   )
 
 (defn product
@@ -260,8 +278,8 @@
   (multiset (for [a (seq ms1) b (seq ms2)]
               [a b])))
 (s/fdef product
-  :args (s/cat :ms1 multiset? :ms2 multiset?)
-  :ret multiset?)
+  :args (s/cat :ms1 ::multiset :ms2 ::multiset)
+  :ret ::multiset)
 
 (comment
   (multiset [1 2 3 1 2 3 nil true false])
